@@ -1,0 +1,16 @@
+{
+  "name": "anime-api",
+  "version": "1.0.0",
+  "description": "AnimePahe API Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.19.2",
+    "localtunnel": "^2.0.2"
+  }
+}
