@@ -7,14 +7,13 @@ require('dotenv').config();
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+// Proxy config from .env
+const PROXY_HOST = process.env.PROXY_HOST;
+const PROXY_PORT = process.env.PROXY_PORT;
+const PROXY_USER = process.env.PROXY_USER;
+const PROXY_PASS = process.env.PROXY_PASS;
 
-// Proxy config
-const PROXY_HOST = '104.222.161.211';
-const PROXY_PORT = 6343;
-const PROXY_USER = 'ccmvjidq';
-const PROXY_PASS = 'kg7t8326hfjz';
 const PROXY_URL = `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
-
 // Set proxy agents globally
 const httpsAgent = new HttpsProxyAgent(PROXY_URL);
 const httpAgent = new HttpProxyAgent(PROXY_URL);
