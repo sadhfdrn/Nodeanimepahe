@@ -39,12 +39,13 @@ Minimal static frontend approach:
 - No client-side JavaScript framework - pure HTML/CSS documentation interface
 - Responsive design for mobile and desktop
 
-### Proxy Integration
-Comprehensive proxy support for web scraping:
-- HTTP and HTTPS proxy agents configured globally
-- Authentication support with username/password
-- Proxy connection testing on startup
-- Environment variable configuration for easy deployment
+### Tor Network Integration
+Comprehensive Tor network support for web scraping:
+- SOCKS5 proxy agent configured for Tor network (default port 9050)
+- Tor agent configured globally for all HTTPS requests
+- Tor connection testing on startup
+- Environment variable configuration (TOR_HOST, TOR_PORT) for easy deployment
+- Fallback to regular HTTP requests if Tor connection fails
 
 ### Error Handling
 Consistent error handling across all endpoints:
@@ -67,11 +68,11 @@ Optimized for serverless deployment:
 ### Web Scraping Stack
 - **Axios** - HTTP client for making requests to target websites
 - **Cheerio** - Server-side HTML parsing and DOM manipulation
-- **http-proxy-agent & https-proxy-agent** - Proxy support for web scraping
+- **socks-proxy-agent** - SOCKS5 proxy support for Tor network integration
 
 ### Target Website
 - **AnimePahe.ru** - Primary data source for anime information and streaming links
-- **httpbin.org** - Used for proxy connection testing
+- **httpbin.org** - Used for Tor connection testing
 
 ### Deployment Platform
 - **Vercel** - Serverless deployment platform with Node.js runtime support
