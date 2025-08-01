@@ -1,4 +1,0 @@
-SOCKSPort 9050
-SOCKSPolicy accept *
-DataDirectory ~/.tor
-Log notice stdout
