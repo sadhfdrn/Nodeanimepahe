@@ -1,15 +1,84 @@
-
 const express = require('express');
 const path = require('path');
-const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 require('dotenv').config();
+
+// Proxy configuration
+const PROXY_HOST = '104.222.161.211';
+const PROXY_PORT = 6343;
+const PROXY_USER = 'ccmvjidq';
+const PROXY_PASS = 'kg7t8326hfjz';
+const PROXY_URL = `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
+
+// Set up global proxy agents
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+
+const httpsAgent = new HttpsProxyAgent(PROXY_URL);
+const httpAgent = new HttpProxyAgent(PROXY_URL);
+
+// Configure global agents for all HTTP/HTTPS requests
+https.globalAgent = httpsAgent;
+http.globalAgent = httpAgent;
+
+console.log(`Using proxy: ${PROXY_HOST}:${PROXY_PORT} with user: ${PROXY_USER}`);
+
+// Test proxy connection
+async function testProxy() {
+  try {
+    const https = require('https');
+    
+    const options = {
+      hostname: 'httpbin.org',
+      path: '/ip',
+      method: 'GET',
+      agent: httpsAgent
+    };
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(data);
+            console.log(`Proxy working! External IP: ${response.origin}`);
+            resolve(response.origin);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+      
+      req.on('error', reject);
+      req.setTimeout(10000, () => reject(new Error('Proxy test timeout')));
+      req.end();
+    });
+  } catch (error) {
+    console.error('Proxy test failed:', error.message);
+    throw error;
+  }
+}
 
 const animepaheRouter = require('./routes/animepahe');
 
 const app = express();
-const port = 3000;
+// Use PORT environment variable (Koyeb sets this) or fallback to 3005
+const port = process.env.PORT || 3005;
+
+// Middleware to add proxy info to requests
+app.use((req, res, next) => {
+  req.proxyInfo = {
+    host: PROXY_HOST,
+    port: PROXY_PORT,
+    user: PROXY_USER,
+    httpsAgent: httpsAgent,
+    httpAgent: httpAgent
+  };
+  next();
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/animepahe', animepaheRouter);
@@ -18,131 +87,88 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Function to create SSH tunnel to localhost.run (generates .lhr.life URL)
-function createLhrTunnel() {
-  return new Promise((resolve, reject) => {
-    console.log('Creating SSH tunnel to localhost.run...');
-    
-    // Create SSH tunnel to localhost.run which generates .lhr.life URLs
-    const sshProcess = spawn('ssh', [
-      '-o', 'StrictHostKeyChecking=no',
-      '-o', 'UserKnownHostsFile=/dev/null',
-      '-o', 'ConnectTimeout=10',
-      '-R', `80:localhost:${port}`,
-      'nokey@localhost.run'
-    ], {
-      stdio: ['pipe', 'pipe', 'pipe']
+// Add endpoint to check proxy status
+app.get('/api/proxy-status', async (req, res) => {
+  try {
+    const ip = await testProxy();
+    res.json({ 
+      status: 'connected', 
+      proxy: `${PROXY_HOST}:${PROXY_PORT}`,
+      externalIP: ip 
     });
-
-    let tunnelUrl = '';
-    let urlFound = false;
-
-    sshProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log('SSH Output:', output);
-      
-      // Look for .lhr.life URL in output
-      const urlMatch = output.match(/https?:\/\/[a-zA-Z0-9\-]+\.lhr\.life/);
-      if (urlMatch && !urlFound) {
-        tunnelUrl = urlMatch[0];
-        urlFound = true;
-        console.log(`Tunnel URL found: ${tunnelUrl}`);
-        resolve({ url: tunnelUrl, process: sshProcess });
-      }
+  } catch (error) {
+    res.json({ 
+      status: 'error', 
+      proxy: `${PROXY_HOST}:${PROXY_PORT}`,
+      error: error.message 
     });
+  }
+});
 
-    sshProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      console.log('SSH Info:', output);
-      
-      // Sometimes the URL appears in stderr
-      const urlMatch = output.match(/https?:\/\/[a-zA-Z0-9\-]+\.lhr\.life/);
-      if (urlMatch && !urlFound) {
-        tunnelUrl = urlMatch[0];
-        urlFound = true;
-        console.log(`Tunnel URL found: ${tunnelUrl}`);
-        resolve({ url: tunnelUrl, process: sshProcess });
-      }
-    });
+// Health check endpoint for Koyeb
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
 
-    sshProcess.on('close', (code) => {
-      console.log(`SSH process closed with code ${code}`);
-      if (!urlFound) {
-        reject(new Error(`SSH process closed with code ${code} before URL was found`));
-      }
-    });
-
-    sshProcess.on('error', (error) => {
-      reject(new Error(`SSH process error: ${error.message}`));
-    });
-
-    // Timeout after 20 seconds
-    setTimeout(() => {
-      if (!urlFound) {
-        sshProcess.kill();
-        reject(new Error('Timeout waiting for tunnel URL'));
-      }
-    }, 20000);
-  });
-}
+let server;
 
 (async () => {
   try {
-    // Start the Express server first
-    const server = app.listen(port, '0.0.0.0', () => {
-      console.log(`Server listening at http://localhost:${port}`);
+    // Test proxy connection first
+    console.log('Testing proxy connection...');
+    await testProxy();
+    
+    // Start the Express server - Koyeb will handle public URL exposure
+    server = app.listen(port, '0.0.0.0', () => {
+      console.log(`Server listening on port ${port}`);
+      console.log('All outgoing requests will use the configured proxy');
+      console.log('Koyeb will provide the public URL for this service');
     });
 
-    // Wait a moment for the server to be ready
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Create deployment info file for frontend
+    const deploymentInfo = {
+      port: port,
+      proxyEnabled: true,
+      proxyHost: PROXY_HOST,
+      platform: 'koyeb',
+      timestamp: new Date().toISOString()
+    };
+    
+    fs.writeFileSync(path.join(__dirname, 'public', 'deployment-info.json'), 
+      JSON.stringify(deploymentInfo, null, 2));
 
-    // Create the SSH tunnel directly (skip bore completely)
-    console.log('Creating SSH tunnel to generate .lhr.life URL...');
-    const tunnel = await createLhrTunnel();
-
-    console.log(`Your tunnel URL is: ${tunnel.url}`);
-    console.log('No password required - Direct tunnel access!');
-
-    // Store tunnel details for frontend
-    fs.writeFileSync(path.join(__dirname, 'public', 'tunnel-details.json'), JSON.stringify({ 
-      url: tunnel.url,
-      provider: 'localhost.run',
-      passwordRequired: false
-    }));
-
-    // Handle process termination
-    process.on('SIGINT', () => {
-      console.log('\nShutting down gracefully...');
-      tunnel.process.kill();
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGTERM', () => {
-      tunnel.process.kill();
-      server.close(() => {
-        process.exit(0);
-      });
-    });
-
-    // Monitor tunnel process
-    tunnel.process.on('close', () => {
-      console.log('Tunnel closed');
-      server.close(() => {
-        process.exit();
-      });
-    });
+    console.log('Deployment info saved for frontend');
     
   } catch (error) {
-    console.error('Error creating tunnel:', error.message);
-    console.log('Starting server without tunnel...');
-    
-    // Fallback: start server without tunnel
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`Server listening at http://localhost:${port}`);
-      console.log('Tunnel creation failed - server running locally only');
-    });
+    console.error('Error during startup:', error.message);
+    process.exit(1);
   }
 })();
+
+// Handle process termination
+function gracefulShutdown() {
+  console.log('\nShutting down gracefully...');
+  
+  if (server) {
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error.message);
+  gracefulShutdown();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit on unhandled rejections in production, just log them
+});
