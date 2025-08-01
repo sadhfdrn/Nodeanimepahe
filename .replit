@@ -18,7 +18,7 @@ args = "AnimePahe Tor Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Tor Service"
+args = "Hello World"
 
 [[workflows.workflow]]
 name = "AnimePahe Tor Server"
@@ -30,12 +30,12 @@ args = "node index.js"
 waitForPort = 3005
 
 [[workflows.workflow]]
-name = "Tor Service"
+name = "Hello World"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "tor -f torrc"
+args = "node hello.js"
 
 [[ports]]
 localPort = 3005

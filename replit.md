@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a web scraping API server that provides programmatic access to AnimePahe content. The application serves as a middleware layer that scrapes anime information, search results, and streaming sources from AnimePahe.ru and exposes them through a clean REST API. It includes a simple web interface for API documentation and testing, and is configured for deployment on Vercel with proxy support for web scraping operations.
+This is a dual-application setup: a web scraping API server that provides programmatic access to AnimePahe content, plus a separate full-stack Tor WebSocket proxy application. The main application serves as a middleware layer that scrapes anime information from AnimePahe.ru with proxy support, while the dedicated Tor application provides anonymous request routing through WebSocket connections. Both applications work independently and can be deployed separately.
 
 ## User Preferences
 
@@ -94,7 +94,8 @@ A dedicated full-stack Tor proxy application located in the `/Tor` directory pro
 ### Deployment
 - `docker-compose up --build` for complete setup
 - Includes Tor daemon, Node.js server, and web interface
-- Accessible at http://localhost:3000 with WebSocket endpoint at /ws
+- **Live deployment:** https://homeless-cosette-kayceeko-3490cd6d.koyeb.app/
+- Local development: http://localhost:3000 with WebSocket endpoint at /ws
 
 ### Deployment Platform
 - **Vercel** - Serverless deployment platform with Node.js runtime support
