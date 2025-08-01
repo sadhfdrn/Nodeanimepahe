@@ -97,8 +97,20 @@ A dedicated full-stack Tor proxy application located in the `/Tor` directory pro
 - **Live deployment:** https://homeless-cosette-kayceeko-3490cd6d.koyeb.app/
 - Local development: http://localhost:3000 with WebSocket endpoint at /ws
 
-### Deployment Platform
-- **Vercel** - Serverless deployment platform with Node.js runtime support
+### Deployment Platforms
+- **Vercel** - Serverless deployment with enhanced configuration and environment variable support
+- **Netlify** - Alternative serverless deployment with function-based architecture
+- **Replit** - Primary development environment with live preview capabilities
+
+### Configuration Files
+- **vercel.json** - Vercel deployment configuration with proper routing and timeouts
+- **netlify.toml** - Netlify deployment with serverless functions and redirects
+- **functions/server.js** - Netlify serverless function wrapper for the main application
+
+### Environment Variables
+- **TOR_WEBSOCKET_URL** - WebSocket endpoint for Tor proxy (wss://homeless-cosette-kayceeko-3490cd6d.koyeb.app/ws)
+- **TOR_REST_URL** - REST API endpoint for Tor proxy fallback
+- Legacy proxy settings (PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS) for alternative configurations
 
 ### Styling Framework
 - **Tailwind CSS** - Utility-first CSS framework delivered via CDN for the documentation interface
