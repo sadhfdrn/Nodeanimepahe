@@ -39,13 +39,13 @@ Minimal static frontend approach:
 - No client-side JavaScript framework - pure HTML/CSS documentation interface
 - Responsive design for mobile and desktop
 
-### Proxy Integration
-Comprehensive proxy support for web scraping:
-- HTTP and HTTPS proxy agents configured globally when credentials available
-- Authentication support with username/password
-- Proxy connection testing on startup
-- Environment variable configuration for easy deployment
-- Fallback to direct connection when proxy unavailable
+### Tor WebSocket Proxy Integration
+AnimePahe API now routes all requests through hosted Tor WebSocket proxy:
+- All AnimePahe requests routed through https://homeless-cosette-kayceeko-3490cd6d.koyeb.app/
+- WebSocket connection with automatic fallback to REST API
+- Complete anonymity through Tor network for all scraping operations
+- Real-time connection monitoring and automatic reconnection
+- Enhanced privacy protection with rotating IP addresses
 
 ### Error Handling
 Consistent error handling across all endpoints:
