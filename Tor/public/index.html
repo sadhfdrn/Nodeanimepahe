@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tor WebSocket Proxy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .console {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-purple-400 mb-2">🧅 Tor WebSocket Proxy</h1>
+            <p class="text-gray-300">Anonymous request routing through Tor network via WebSocket</p>
+        </header>
+
+        <!-- Connection Status -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Connection Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-700 p-4 rounded">
+                    <div class="text-sm text-gray-400">WebSocket</div>
+                    <div id="ws-status" class="text-lg font-mono">Disconnected</div>
+                </div>
+                <div class="bg-gray-700 p-4 rounded">
+                    <div class="text-sm text-gray-400">Tor Status</div>
+                    <div id="tor-status" class="text-lg font-mono">Unknown</div>
+                </div>
+                <div class="bg-gray-700 p-4 rounded">
+                    <div class="text-sm text-gray-400">External IP</div>
+                    <div id="external-ip" class="text-lg font-mono">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Testing -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Proxy Request</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">URL</label>
+                    <input type="text" id="test-url" 
+                           value="https://httpbin.org/ip" 
+                           class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-purple-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Method</label>
+                        <select id="test-method" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-purple-500 focus:outline-none">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Content-Type</label>
+                        <select id="content-type" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-purple-500 focus:outline-none">
+                            <option value="application/json">application/json</option>
+                            <option value="text/plain">text/plain</option>
+                            <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Request Body (JSON)</label>
+                    <textarea id="test-body" rows="3" 
+                              class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-purple-500 focus:outline-none"
+                              placeholder='{"key": "value"}'></textarea>
+                </div>
+                <button onclick="sendTestRequest()" 
+                        class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded font-medium transition-colors">
+                    Send Request via Tor
+                </button>
+            </div>
+        </div>
+
+        <!-- Response Console -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Response Console</h2>
+            <div id="console" class="console p-4 rounded min-h-[200px] max-h-[400px] overflow-y-auto whitespace-pre-wrap">
+Welcome to Tor WebSocket Proxy Console
+=====================================
+Connecting to WebSocket...
+            </div>
+            <button onclick="clearConsole()" 
+                    class="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors">
+                Clear Console
+            </button>
+        </div>
+
+        <!-- API Documentation -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">API Documentation</h2>
+            <div class="space-y-4">
+                <div class="bg-gray-700 p-4 rounded">
+                    <h3 class="font-semibold text-green-400">WebSocket Endpoints</h3>
+                    <p class="text-sm text-gray-300 mt-2">Connect to: <code class="bg-gray-600 px-2 py-1 rounded">ws://localhost:3000/ws</code></p>
+                    <div class="mt-2 text-sm">
+                        <p><strong>Message Types:</strong></p>
+                        <ul class="list-disc list-inside text-gray-300 ml-4">
+                            <li><code>proxy-request</code> - Route HTTP request through Tor</li>
+                            <li><code>tor-status</code> - Check Tor connection status</li>
+                            <li><code>ping</code> - Keep connection alive</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="bg-gray-700 p-4 rounded">
+                    <h3 class="font-semibold text-blue-400">REST API Endpoints</h3>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li><code>GET /api/tor-status</code> - Check Tor connection</li>
+                        <li><code>POST /api/proxy</code> - Proxy HTTP request through Tor</li>
+                        <li><code>GET /api/stats</code> - Server statistics</li>
+                        <li><code>GET /health</code> - Health check</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let requestId = 0;
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                updateStatus('ws-status', 'Connected', 'text-green-400');
+                logToConsole('✅ WebSocket connected');
+                checkTorStatus();
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = function() {
+                updateStatus('ws-status', 'Disconnected', 'text-red-400');
+                logToConsole('❌ WebSocket disconnected');
+                // Attempt to reconnect after 3 seconds
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                logToConsole('🚨 WebSocket error: ' + error);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'connection':
+                    logToConsole(`🔗 ${data.message} (ID: ${data.connectionId})`);
+                    break;
+                case 'tor-status':
+                    if (data.status === 'connected') {
+                        updateStatus('tor-status', 'Connected', 'text-green-400');
+                        updateStatus('external-ip', data.externalIP, 'text-green-400');
+                        logToConsole(`🧅 Tor connected - External IP: ${data.externalIP}`);
+                    } else {
+                        updateStatus('tor-status', 'Error', 'text-red-400');
+                        logToConsole(`❌ Tor error: ${data.error}`);
+                    }
+                    break;
+                case 'proxy-response':
+                    logToConsole(`📥 Response (${data.status}): ${JSON.stringify(data.data, null, 2)}`);
+                    break;
+                case 'proxy-error':
+                    logToConsole(`🚨 Request error: ${data.error}`);
+                    break;
+                case 'pong':
+                    logToConsole('🏓 Pong received');
+                    break;
+                default:
+                    logToConsole(`📨 ${JSON.stringify(data)}`);
+            }
+        }
+
+        function checkTorStatus() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'tor-status' }));
+            }
+        }
+
+        function sendTestRequest() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                logToConsole('❌ WebSocket not connected');
+                return;
+            }
+
+            const url = document.getElementById('test-url').value;
+            const method = document.getElementById('test-method').value;
+            const contentType = document.getElementById('content-type').value;
+            const body = document.getElementById('test-body').value;
+
+            const headers = {};
+            if (contentType) {
+                headers['Content-Type'] = contentType;
+            }
+
+            const request = {
+                type: 'proxy-request',
+                requestId: ++requestId,
+                url: url,
+                method: method,
+                headers: headers
+            };
+
+            if (body && (method === 'POST' || method === 'PUT')) {
+                try {
+                    request.body = JSON.parse(body);
+                } catch (e) {
+                    request.body = body;
+                }
+            }
+
+            logToConsole(`📤 Sending ${method} request to: ${url}`);
+            ws.send(JSON.stringify(request));
+        }
+
+        function updateStatus(elementId, text, className) {
+            const element = document.getElementById(elementId);
+            element.textContent = text;
+            element.className = `text-lg font-mono ${className}`;
+        }
+
+        function logToConsole(message) {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            console.textContent += `\n[${timestamp}] ${message}`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').textContent = 'Console cleared\n=====================================\n';
+        }
+
+        // Send periodic pings to keep connection alive
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 30000);
+
+        // Initialize on page load
+        window.onload = function() {
+            initWebSocket();
+        };
+    </script>
+</body>
+</html>

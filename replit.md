@@ -39,13 +39,13 @@ Minimal static frontend approach:
 - No client-side JavaScript framework - pure HTML/CSS documentation interface
 - Responsive design for mobile and desktop
 
-### Tor Network Integration
-Comprehensive Tor network support for web scraping:
-- SOCKS5 proxy agent configured for Tor network (default port 9050)
-- Tor agent configured globally for all HTTPS requests
-- Tor connection testing on startup
-- Environment variable configuration (TOR_HOST, TOR_PORT) for easy deployment
-- Fallback to regular HTTP requests if Tor connection fails
+### Proxy Integration
+Comprehensive proxy support for web scraping:
+- HTTP and HTTPS proxy agents configured globally when credentials available
+- Authentication support with username/password
+- Proxy connection testing on startup
+- Environment variable configuration for easy deployment
+- Fallback to direct connection when proxy unavailable
 
 ### Error Handling
 Consistent error handling across all endpoints:
@@ -72,7 +72,29 @@ Optimized for serverless deployment:
 
 ### Target Website
 - **AnimePahe.ru** - Primary data source for anime information and streaming links
-- **httpbin.org** - Used for Tor connection testing
+- **httpbin.org** - Used for proxy connection testing
+
+## Tor WebSocket Proxy (Separate Application)
+
+A dedicated full-stack Tor proxy application located in the `/Tor` directory provides:
+
+### Architecture
+- **Docker-based deployment** with complete Tor network setup
+- **WebSocket API** for real-time proxy request routing
+- **REST API** for traditional HTTP proxy requests
+- **Interactive web interface** for testing and monitoring
+
+### Key Features
+- Complete Tor network integration with SOCKS5 proxy
+- Real-time WebSocket communication for proxy requests
+- Docker containerization with multi-service orchestration
+- Web-based dashboard for connection monitoring and testing
+- Automatic Tor bootstrapping and health checking
+
+### Deployment
+- `docker-compose up --build` for complete setup
+- Includes Tor daemon, Node.js server, and web interface
+- Accessible at http://localhost:3000 with WebSocket endpoint at /ws
 
 ### Deployment Platform
 - **Vercel** - Serverless deployment platform with Node.js runtime support

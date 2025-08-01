@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  tor-proxy-app:
+    build: .
+    ports:
+      - "3000:3000"
+      - "9050:9050"
+    environment:
+      - NODE_ENV=production
+      - TOR_HOST=127.0.0.1
+      - TOR_PORT=9050
+    volumes:
+      - tor_data:/var/lib/tor
+    restart: unless-stopped
+    networks:
+      - tor-network
+
+volumes:
+  tor_data:
+
+networks:
+  tor-network:
+    driver: bridge

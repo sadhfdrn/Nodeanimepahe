@@ -6,8 +6,8 @@ const router = express.Router();
 router.get('/search/:query', async (req, res) => {
   try {
     const query = req.params.query;
-    // Create AnimePahe instance with Tor agent
-    const animepahe = new AnimePahe(null, null, req.torInfo.agent);
+    // Create AnimePahe instance with proxy agent
+    const animepahe = new AnimePahe(null, null, req.proxyInfo.httpsAgent);
     const data = await animepahe.search(query);
     res.json(data);
   } catch (err) {
@@ -18,8 +18,8 @@ router.get('/search/:query', async (req, res) => {
 router.get('/info/:animeId', async (req, res) => {
   try {
     const animeId = req.params.animeId;
-    // Create AnimePahe instance with Tor agent
-    const animepahe = new AnimePahe(null, null, req.torInfo.agent);
+    // Create AnimePahe instance with proxy agent
+    const animepahe = new AnimePahe(null, null, req.proxyInfo.httpsAgent);
     const data = await animepahe.fetchAnimeInfo(animeId);
     res.json(data);
   } catch (err) {
@@ -30,8 +30,8 @@ router.get('/info/:animeId', async (req, res) => {
 router.get('/sources/:episodeId/:episodeSession', async (req, res) => {
     try {
         const episodeId = `${req.params.episodeId}/${req.params.episodeSession}`;
-        // Create AnimePahe instance with Tor agent
-        const animepahe = new AnimePahe(null, null, req.torInfo.agent);
+        // Create AnimePahe instance with proxy agent
+        const animepahe = new AnimePahe(null, null, req.proxyInfo.httpsAgent);
         const data = await animepahe.fetchEpisodeSources(episodeId);
         res.json(data);
     } catch (err) {

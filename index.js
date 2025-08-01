@@ -5,28 +5,37 @@ const https = require('https');
 const http = require('http');
 require('dotenv').config();
 
-const { SocksProxyAgent } = require('socks-proxy-agent');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
 
-// Tor SOCKS5 proxy configuration instead of HTTP proxy
-const TOR_HOST = process.env.TOR_HOST || '127.0.0.1';
-const TOR_PORT = process.env.TOR_PORT || 9050;
+// Proxy config from .env
+const PROXY_HOST = process.env.PROXY_HOST;
+const PROXY_PORT = process.env.PROXY_PORT;
+const PROXY_USER = process.env.PROXY_USER;
+const PROXY_PASS = process.env.PROXY_PASS;
 
-// Create Tor proxy agent
-const torAgent = new SocksProxyAgent(`socks5://${TOR_HOST}:${TOR_PORT}`);
+let httpsAgent, httpAgent;
 
-// Set Tor agent globally for HTTPS requests
-https.globalAgent = torAgent;
+if (PROXY_HOST && PROXY_PORT && PROXY_USER && PROXY_PASS) {
+  const PROXY_URL = `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
+  // Set proxy agents globally
+  httpsAgent = new HttpsProxyAgent(PROXY_URL);
+  httpAgent = new HttpProxyAgent(PROXY_URL);
+  https.globalAgent = httpsAgent;
+  http.globalAgent = httpAgent;
+  console.log(`Using proxy: ${PROXY_HOST}:${PROXY_PORT} with user: ${PROXY_USER}`);
+} else {
+  console.log('No proxy configuration found, using direct connection');
+}
 
-console.log(`Using Tor network via ${TOR_HOST}:${TOR_PORT}`);
-
-// Test Tor connection
-async function testTorConnection() {
+// Test proxy connection
+async function testProxy() {
   try {
     const options = {
       hostname: 'httpbin.org',
       path: '/ip',
       method: 'GET',
-      agent: torAgent
+      agent: httpsAgent
     };
 
     return new Promise((resolve, reject) => {
@@ -36,7 +45,7 @@ async function testTorConnection() {
         res.on('end', () => {
           try {
             const response = JSON.parse(data);
-            console.log(`Tor working! External IP: ${response.origin}`);
+            console.log(`Proxy working! External IP: ${response.origin}`);
             resolve(response.origin);
           } catch (e) {
             reject(e);
@@ -45,11 +54,11 @@ async function testTorConnection() {
       });
 
       req.on('error', reject);
-      req.setTimeout(10000, () => reject(new Error('Tor connection timeout')));
+      req.setTimeout(10000, () => reject(new Error('Proxy test timeout')));
       req.end();
     });
   } catch (error) {
-    console.error('Tor connection test failed:', error.message);
+    console.error('Proxy test failed:', error.message);
     throw error;
   }
 }
@@ -103,12 +112,14 @@ const port = process.env.PORT || 3005;
 
 let deploymentInfo = null;
 
-// Middleware to pass Tor agent info to routes
+// Middleware to pass proxy info to routes
 app.use((req, res, next) => {
-  req.torInfo = {
-    host: TOR_HOST,
-    port: TOR_PORT,
-    agent: torAgent
+  req.proxyInfo = {
+    host: PROXY_HOST,
+    port: PROXY_PORT,
+    user: PROXY_USER,
+    httpsAgent,
+    httpAgent
   };
   next();
 });
@@ -128,8 +139,8 @@ app.get('/', (req, res) => {
     url: realUrl,
     platform: platform,
     host: req.headers.host,
-    torEnabled: true,
-    torHost: TOR_HOST,
+    proxyEnabled: true,
+    proxyHost: PROXY_HOST,
     headers: {
       'x-forwarded-proto': req.headers['x-forwarded-proto'],
       'x-forwarded-host': req.headers['x-forwarded-host'],
@@ -183,7 +194,7 @@ app.get('/api/deployment-info', (req, res) => {
       url: realUrl,
       platform: platform,
       host: req.headers.host,
-      torEnabled: true,
+      proxyEnabled: true,
       timestamp: new Date().toISOString(),
       detectedAt: 'api-request'
     };
@@ -201,7 +212,7 @@ app.get('/tunnel-details.json', (req, res) => {
     deploymentInfo = {
       url: realUrl,
       platform: platform,
-      torEnabled: true,
+      proxyEnabled: true,
       timestamp: new Date().toISOString()
     };
   }
@@ -214,19 +225,19 @@ app.get('/tunnel-details.json', (req, res) => {
 });
 
 // Tor health check (replacing proxy status)
-app.get('/api/tor-status', async (req, res) => {
+app.get('/api/proxy-status', async (req, res) => {
   try {
-    const ip = await testTorConnection();
+    const ip = await testProxy();
     res.json({
       status: 'connected',
-      tor: `${TOR_HOST}:${TOR_PORT}`,
+      tor: `${PROXY_HOST}:${PROXY_PORT}`,
       externalIP: ip,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.json({
       status: 'error',
-      tor: `${TOR_HOST}:${TOR_PORT}`,
+      tor: `${PROXY_HOST}:${PROXY_PORT}`,
       error: error.message,
       timestamp: new Date().toISOString()
     });
@@ -255,8 +266,8 @@ app.get('/api/detect-url', (req, res) => {
     url: realUrl,
     platform: platform,
     host: req.headers.host,
-    torEnabled: true,
-    torHost: TOR_HOST,
+    proxyEnabled: true,
+    proxyHost: PROXY_HOST,
     detectionMethod: 'forced',
     headers: {
       'host': req.headers.host,
@@ -306,7 +317,7 @@ app.get('*', (req, res, next) => {
     deploymentInfo = {
       url: realUrl,
       platform: platform,
-      torEnabled: true,
+      proxyEnabled: true,
       timestamp: new Date().toISOString(),
       detectedAt: 'catch-all'
     };
@@ -323,7 +334,7 @@ let server;
 async function startServer() {
   try {
     console.log('🔧 Testing Tor connection...');
-    await testTorConnection();
+    await testProxy();
     console.log('✅ Tor connection successful');
 
     server = app.listen(port, '0.0.0.0', () => {
