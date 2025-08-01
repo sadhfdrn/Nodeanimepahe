@@ -2,6 +2,7 @@ modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-25_05"
+packages = ["tor"]
 
 [workflows]
 runButton = "Project"
@@ -15,6 +16,10 @@ author = "agent"
 task = "workflow.run"
 args = "AnimePahe Tor Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Tor Service"
+
 [[workflows.workflow]]
 name = "AnimePahe Tor Server"
 author = "agent"
@@ -23,6 +28,14 @@ author = "agent"
 task = "shell.exec"
 args = "node index.js"
 waitForPort = 3005
+
+[[workflows.workflow]]
+name = "Tor Service"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "tor -f torrc"
 
 [[ports]]
 localPort = 3005
